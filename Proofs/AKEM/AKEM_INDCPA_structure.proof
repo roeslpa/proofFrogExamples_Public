@@ -1,0 +1,52 @@
+// Proof that EncSign AKEM satisfies AKEM_INDCPA security for AKEMs,
+// assuming the underlying KEM is KEM_INDCPA-secure.
+//
+// Main idea:
+// Replace real KEM shared secret k* with random k* (KEM KEM_INDCPA assumption)
+
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/AKEM.primitive';
+import '../../Primitives/Signature.primitive';
+import '../../Schemes/AKEM/EncSign.scheme';
+import '../../Games/KEM/INDCPA.game';
+import '../../Games/AKEM/INDCPA.game';
+
+Reduction R_KEM(KEM K, Signature S, AKEM KS) compose KEM_INDCPA(K) against AKEM_INDCPA(KS).Adversary {
+
+    // To be filled with reduction
+
+}
+
+proof:
+
+let:
+    Set SharedSecret;
+    Set KCiphertext;
+    Set KPublicKey;
+    Set KSecretKey;
+    Set Message;
+    Set Sig;
+    Set SPublicKey;
+    Set SSecretKey;
+    KEM K = KEM(SharedSecret, KCiphertext, KPublicKey, KSecretKey);
+    Signature S = Signature(Message, Sig, SPublicKey, SSecretKey);
+    AKEM KS = EncSign(K, S);
+
+assume:
+    KEM_INDCPA(K);
+
+theorem:
+    AKEM_INDCPA(KS);
+
+games:
+    // Real game
+    AKEM_INDCPA(KS).Real against AKEM_INDCPA(KS).Adversary;
+
+    // Isolate KEM KEM_INDCPA
+    KEM_INDCPA(K).Real compose R_KEM(K, S, KS) against AKEM_INDCPA(KS).Adversary;
+
+    // By KEM KEM_INDCPA assumption: k* now random
+    KEM_INDCPA(K).Random compose R_KEM(K, S, KS) against AKEM_INDCPA(KS).Adversary;
+
+    // Interchangeability: uniform random shared secret = Random game
+    AKEM_INDCPA(KS).Random against AKEM_INDCPA(KS).Adversary;
