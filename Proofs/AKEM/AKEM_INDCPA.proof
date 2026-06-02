@@ -23,7 +23,7 @@ Reduction R_KEM(KEM K, Signature S, AKEM KS) compose KEM_INDCPA(K) against AKEM_
         
         // [KS.PublicKey, KS.SecretKey] kR = KS.KeyGen():
                 
-        //[K.PublicKey, K.SecretKey] r = K.KeyGen();
+        // [K.PublicKey, K.SecretKey] r = K.KeyGen();
         K.PublicKey r = challenger.Initialize();
         [S.PublicKey, S.SecretKey] s = S.KeyGen();
         KS.PublicKey pkR = [r, s[0]];
