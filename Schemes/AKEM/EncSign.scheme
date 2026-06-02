@@ -1,0 +1,42 @@
+import '../../Primitives/AKEM.primitive';
+import '../../examples/Primitives/KEM.primitive';
+import '../../Primitives/Signature.primitive';
+
+Scheme EncSign(KEM K, Signature S) extends AKEM {
+    //!!! requires [K.PublicKey, S.PublicKey, K.PublicKey, S.PublicKey, K.Ciphertext] subsets S.Message;
+    requires K.Ciphertext subsets S.Message;
+
+    Set SharedSecret = K.SharedSecret;
+    Set Ciphertext = [K.Ciphertext, S.Sig];
+    Set PublicKey = [K.PublicKey, S.PublicKey];
+    Set SecretKey = [K.PublicKey, K.SecretKey, S.PublicKey, S.SecretKey];
+
+    [PublicKey, SecretKey] KeyGen() {
+        [K.PublicKey, K.SecretKey] r = K.KeyGen();
+        [S.PublicKey, S.SecretKey] s = S.KeyGen();
+        PublicKey pk = [r[0], s[0]];
+        SecretKey sk = [r[0], r[1], s[0], s[1]]; // sk=[K.pk, K.sk, S.pk, S.sk]
+        return [pk, sk];
+    }
+
+    [SharedSecret, Ciphertext] Encaps(SecretKey skS, PublicKey pkR) {
+        K.PublicKey pkRK = pkR[0];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pkRK);
+        SharedSecret k_sym = rsp[0];
+        K.Ciphertext c_kem = rsp[1];
+        //!!! S.Sig sig = S.Sign(skS[3], [skS[0], skS[2], pkR[0], pkR[1], c_kem]); // m=[K.pkS, S.pkS, K.pkR, K.pkR, c]
+        S.Sig sig = S.Sign(skS[3], c_kem); // m=[K.pkS, S.pkS, K.pkR, K.pkR, c]
+        Ciphertext c = [c_kem, sig]; // c=[c, sig]
+        return [k_sym, c];
+    }
+
+    deterministic SharedSecret? Decaps(SecretKey skR, PublicKey pkS, Ciphertext c) {
+        SharedSecret k = K.Decaps(skR[1], c[0]);
+        //!!! Bool v = S.Verify(pkS[1], [pkS[0], pkS[1], skR[0], skR[2], c[0]], c[1]);
+        Bool v = S.Verify(pkS[1], c[0], c[1]);
+        if (v) {
+            return k;
+        }
+        return None;
+    }
+}

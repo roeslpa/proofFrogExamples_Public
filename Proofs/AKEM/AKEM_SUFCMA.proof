@@ -1,0 +1,105 @@
+// Proof that EncSign AKEM satisfies AKEM_SUFCMA security for AKEMs,
+// assuming the underlying Signature scheme is Signature_SUFCMA-secure.
+//
+// Main idea:
+// 1. Switch from real Signature verification to simulated verification that blocks forgeries (Signature Signature_SUFCMA assumption)
+
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/AKEM.primitive';
+import '../../Primitives/Signature.primitive';
+import '../../Schemes/AKEM/EncSign.scheme';
+import '../../Games/Signature/SUFCMA.game';
+import '../../Games/Signature/Correctness.game';
+import '../../Games/AKEM/SUFCMA.game';
+
+// Correctness reduction: mirrors the AKEM_SUFCMA Ideal game (Decaps tracks
+// the honest-ciphertext set C and rejects c not in C when pk == pkS), but
+// delegates the sender's Sign (in Encaps) and Verify (in Decaps, when
+// pk == pkS) to the SignatureCorrectness challenger.
+//   * With SignatureCorrectness.Real  (challenger.Verify = real Verify), the
+//     composition is the AKEM_SUFCMA Ideal game.
+//   * With SignatureCorrectness.Ideal (honest signatures auto-verify), the
+//     pk == pkS branch returns the shared secret for every c in C without
+//     re-running Verify -- matching Signature_SUFCMA.Ideal compose R_Signature.
+// The Ideal -> Real hop between them is the signature-correctness assumption.
+Reduction R_Correct(KEM K, Signature S, AKEM KS) compose SignatureCorrectness(S) against AKEM_SUFCMA(KS).Adversary {
+    KS.SecretKey skS;
+    KS.PublicKey pkS;
+    KS.SecretKey skR;
+    KS.PublicKey pkR;
+
+    [KS.PublicKey, KS.PublicKey] Initialize() {
+        [K.PublicKey, K.SecretKey] r = K.KeyGen();
+        S.PublicKey spk = challenger.Initialize();
+        pkS = [r[0], spk];
+
+        [KS.PublicKey, KS.SecretKey] kR = KS.KeyGen();
+        pkR = kR[0];
+        skR = kR[1];
+        return [pkS, pkR];
+    }
+
+    [KS.SharedSecret, KS.Ciphertext] Encaps() {
+        K.PublicKey pkRK = pkR[0];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pkRK);
+        K.Ciphertext c_kem = rsp[1];
+        S.Sig sig = challenger.Sign(c_kem);
+        KS.Ciphertext c = [c_kem, sig];
+        return [rsp[0], c];
+    }
+
+    KS.SharedSecret? Decaps(KS.PublicKey pk, KS.Ciphertext c) {
+        KS.SharedSecret k = K.Decaps(skR[1], c[0]);
+        Bool v = false;
+        if (pk == pkS) {
+            v = challenger.Verify(c[0], c[1]);
+        } else {
+            v = S.Verify(pk[1], c[0], c[1]);
+        }
+        if (v) {
+            // For the challenge sender, accept only honestly-recorded
+            // ciphertexts. On the Ideal side Recorded reduces to signed-set
+            // membership; the Ideal->Real hop is the correctness step.
+            if (pk == pkS && !challenger.Recorded(c[0], c[1])) {
+                return None;
+            }
+            return k;
+        }
+        return None;
+    }
+}
+
+proof:
+
+let:
+    Set SharedSecret;
+    Set KCiphertext;
+    Set KPublicKey;
+    Set KSecretKey;
+    Set Message;
+    Set Sig;
+    Set SPublicKey;
+    Set SSecretKey;
+    KEM K = KEM(SharedSecret, KCiphertext, KPublicKey, KSecretKey);
+    Signature S = Signature(Message, Sig, SPublicKey, SSecretKey);
+    AKEM KS = EncSign(K, S);
+
+assume:
+    Signature_SUFCMA(S);
+    SignatureCorrectness(S);
+
+theorem:
+    AKEM_SUFCMA(KS);
+
+games:
+    // Real game
+    AKEM_SUFCMA(KS).Real against AKEM_SUFCMA(KS).Adversary;
+
+    // ToDo: Add your proof steps here.
+
+    SignatureCorrectness(S).Ideal compose R_Correct(K, S, KS) against AKEM_SUFCMA(KS).Adversary;
+
+    SignatureCorrectness(S).Real compose R_Correct(K, S, KS) against AKEM_SUFCMA(KS).Adversary;
+
+    // Ideal game
+    AKEM_SUFCMA(KS).Ideal against AKEM_SUFCMA(KS).Adversary;

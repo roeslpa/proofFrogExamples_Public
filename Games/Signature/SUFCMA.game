@@ -1,0 +1,51 @@
+// Strong unforgeability under chosen message attack (SUF-CMA) for Signatures.
+// Real: Verify executes the actual verification.
+// Ideal: Verify only accepts signatures previously returned by Sign.
+
+import '../../Primitives/Signature.primitive';
+
+Game Real(Signature S) {
+    S.SecretKey sk;
+    S.PublicKey pk;
+
+    S.PublicKey Initialize() {
+        [S.PublicKey, S.SecretKey] k = S.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        return pk;
+    }
+
+    S.Sig Sign(S.Message m) {
+        S.Sig s = S.Sign(sk, m);
+        return s;
+    }
+
+    Bool Verify(S.Message m, S.Sig s) {
+        return S.Verify(pk, m, s);
+    }
+}
+
+Game Ideal(Signature S) {
+    S.SecretKey sk;
+    S.PublicKey pk;
+    Set<[S.Message, S.Sig]> Signed; // Book-keeping for all (message, signature) pairs returned by Sign
+
+    S.PublicKey Initialize() {
+        [S.PublicKey, S.SecretKey] k = S.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        return pk;
+    }
+
+    S.Sig Sign(S.Message m) {
+        S.Sig s = S.Sign(sk, m);
+        Signed = Signed union [m, s]; // Add the (message, signature) pair to the set of signed messages
+        return s;
+    }
+
+    Bool Verify(S.Message m, S.Sig s) {
+        return [m, s] in Signed;
+    }
+}
+
+export as Signature_SUFCMA;

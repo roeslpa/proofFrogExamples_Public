@@ -1,0 +1,12 @@
+// Signature primitive.
+// Provides KeyGen (public/secret key pair), Sign (signature), and deterministic Verify (bool).
+Primitive Signature(Set MessageSpace, Set SignatureSpace, Set PKeySpace, Set SKeySpace) {
+    Set Message = MessageSpace;
+    Set Sig = SignatureSpace;
+    Set PublicKey = PKeySpace;
+    Set SecretKey = SKeySpace;
+
+    [PublicKey, SecretKey] KeyGen();
+    Sig Sign(SecretKey sk, Message m);
+    deterministic Bool Verify(PublicKey pk, Message m, Sig s);
+}

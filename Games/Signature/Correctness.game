@@ -1,0 +1,80 @@
+// Correctness game for a Signature scheme.
+// A correct signature scheme is one where Verify accepts signatures
+// produced by Sign under the matching key pair.
+//
+// Real:  Verify executes the actual verification, S.Verify(pk, m, s).
+// Ideal: Verify returns true for any (message, signature) pair previously
+//        returned by Sign, and otherwise falls back to actual verification.
+//
+// The two games differ ONLY in Verify, and only on an honestly-produced
+// (m, s) pair for which real verification would FAIL -- which a correct
+// scheme never produces. Hence Real and Ideal are indistinguishable exactly
+// when the scheme is CORRECT. (Unlike SUF-CMA, the Ideal Verify here does
+// not reject pairs outside the signed set; it only forces honestly-signed
+// pairs to accept. So this assumption is pure correctness -- it says nothing
+// about unforgeability.)
+//
+// Both games also expose Recorded(m, s) -- identical on the two sides, so it
+// does not contribute to distinguishing. It lets a reduction reuse the
+// challenger's signed-set bookkeeping instead of tracking its own.
+
+import '../../Primitives/Signature.primitive';
+
+Game Real(Signature S) {
+    S.SecretKey sk;
+    S.PublicKey pk;
+    Set<[S.Message, S.Sig]> Signed;
+
+    S.PublicKey Initialize() {
+        [S.PublicKey, S.SecretKey] k = S.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        return pk;
+    }
+
+    S.Sig Sign(S.Message m) {
+        S.Sig s = S.Sign(sk, m);
+        Signed = Signed union [m, s];
+        return s;
+    }
+
+    Bool Verify(S.Message m, S.Sig s) {
+        return S.Verify(pk, m, s);
+    }
+
+    Bool Recorded(S.Message m, S.Sig s) {
+        return [m, s] in Signed;
+    }
+}
+
+Game Ideal(Signature S) {
+    S.SecretKey sk;
+    S.PublicKey pk;
+    Set<[S.Message, S.Sig]> Signed;
+
+    S.PublicKey Initialize() {
+        [S.PublicKey, S.SecretKey] k = S.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        return pk;
+    }
+
+    S.Sig Sign(S.Message m) {
+        S.Sig s = S.Sign(sk, m);
+        Signed = Signed union [m, s];
+        return s;
+    }
+
+    Bool Verify(S.Message m, S.Sig s) {
+        if ([m, s] in Signed) {
+            return true;
+        }
+        return S.Verify(pk, m, s);
+    }
+
+    Bool Recorded(S.Message m, S.Sig s) {
+        return [m, s] in Signed;
+    }
+}
+
+export as SignatureCorrectness;
