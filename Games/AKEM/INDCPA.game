@@ -1,0 +1,32 @@
+// CPA security for a AKEM is defined as indistinguishability between
+// two games:
+//  - Real:   The adversary receives a real shared secret from encapsulation
+//  - Random: The adversary receives a random shared secret
+// Both games provide a Decaps oracle that decapsulates any ciphertext
+// except the challenge ciphertext.
+
+import '../../Primitives/AKEM.primitive';
+
+Game Real(AKEM AK) {
+    [AK.PublicKey, AK.PublicKey, AK.SharedSecret, AK.Ciphertext] Initialize() {
+        [AK.PublicKey, AK.SecretKey] kS = AK.KeyGen();
+        [AK.PublicKey, AK.SecretKey] kR = AK.KeyGen();
+        [AK.SharedSecret, AK.Ciphertext] rsp = AK.Encaps(kS[1], kR[0]);
+        AK.SharedSecret ss = rsp[0];
+        AK.Ciphertext ctStar = rsp[1];
+        return [kS[0], kR[0], ss, ctStar];
+    }
+}
+
+Game Random(AKEM AK) {
+    [AK.PublicKey, AK.PublicKey, AK.SharedSecret, AK.Ciphertext] Initialize() {
+        [AK.PublicKey, AK.SecretKey] kS = AK.KeyGen();
+        [AK.PublicKey, AK.SecretKey] kR = AK.KeyGen();
+        [AK.SharedSecret, AK.Ciphertext] rsp = AK.Encaps(kS[1], kR[0]);
+        AK.SharedSecret ss <- AK.SharedSecret;
+        AK.Ciphertext ctStar = rsp[1];
+        return [kS[0], kR[0], ss, ctStar];
+    }
+}
+
+export as AKEM_INDCPA;
