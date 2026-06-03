@@ -1,5 +1,5 @@
 import '../../Primitives/AKEM.primitive';
-import '../../Primitives/KEM.primitive';
+import '../../examples/Primitives/KEM.primitive';
 import '../../Primitives/Signature.primitive';
 
 Scheme EncSign(KEM K, Signature S) extends AKEM {
@@ -8,29 +8,30 @@ Scheme EncSign(KEM K, Signature S) extends AKEM {
     Set SharedSecret = K.SharedSecret;
     Set Ciphertext = [K.Ciphertext, S.Sig];
     Set PublicKey = [K.PublicKey, S.PublicKey];
-    Set SecretKey = [K.PublicKey, K.SecretKey, S.PublicKey, S.SecretKey];
+    Set SecretKey = [K.SecretKey, S.SecretKey];
 
+    //Standard KeyGen for KEM and Signature
     [PublicKey, SecretKey] KeyGen() {
         [K.PublicKey, K.SecretKey] r = K.KeyGen();
         [S.PublicKey, S.SecretKey] s = S.KeyGen();
         PublicKey pk = [r[0], s[0]];
-        SecretKey sk = [r[0], r[1], s[0], s[1]]; // sk=[K.pk, K.sk, S.pk, S.sk]
+        SecretKey sk = [r[1], s[1]]; 
         return [pk, sk];
     }
-
+    //For Encapsulation we need Sender sk and Receiver pk
     [SharedSecret, Ciphertext] Encaps(SecretKey skS, PublicKey pkR) {
-        K.PublicKey pkRK = pkR[0];
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pkRK);
+        K.PublicKey KEM_pkR = pkR[0];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(KEM_pkR);
         SharedSecret k_sym = rsp[0];
         K.Ciphertext c_kem = rsp[1];
-        S.Sig sig = S.Sign(skS[3], c_kem);
+        S.Sig sig = S.Sign(skS[1], c_kem); // Sign C with Secret Key
         Ciphertext c = [c_kem, sig];
         return [k_sym, c];
     }
-
+    //For Decapsulation we need Receiver sk and Sender pk, and a Ciphertext
     deterministic SharedSecret? Decaps(SecretKey skR, PublicKey pkS, Ciphertext c) {
-        SharedSecret k = K.Decaps(skR[1], c[0]);
-        Bool v = S.Verify(pkS[1], c[0], c[1]);
+        SharedSecret k = K.Decaps(skR[0], c[0]); //c = c_kem,sig
+        Bool v = S.Verify(pkS[1], c[0], c[1]); //Verify sig is authentic signature for c_kem
         if (v) {
             return k;
         }
