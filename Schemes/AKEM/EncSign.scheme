@@ -1,5 +1,5 @@
 import '../../Primitives/AKEM.primitive';
-import '../../examples/Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 import '../../Primitives/Signature.primitive';
 
 Scheme EncSign(KEM K, Signature S) extends AKEM {
