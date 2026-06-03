@@ -1,8 +1,9 @@
-// Proof that EncSign AKEM satisfies AKEM_SUFCMA security for AKEMs,
+// ToDo: Proof that EncSign AKEM satisfies AKEM_SUFCMA security for AKEMs,
 // assuming the underlying Signature scheme is Signature_SUFCMA-secure.
+// You can find the primitives, schemes and games in the corresponding folder,
+// the only thing left to complete the proof in this file.
 //
-// Main idea:
-// 1. Switch from real Signature verification to simulated verification that blocks forgeries (Signature Signature_SUFCMA assumption)
+// We have already added a reduction for the signature-correctness assumption (see Signature/Correctness.game).
 
 import '../../Primitives/KEM.primitive';
 import '../../Primitives/AKEM.primitive';
