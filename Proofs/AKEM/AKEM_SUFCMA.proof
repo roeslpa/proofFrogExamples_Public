@@ -13,6 +13,11 @@ import '../../Games/Signature/SUFCMA.game';
 import '../../Games/Signature/Correctness.game';
 import '../../Games/AKEM/SUFCMA.game';
 
+//Signature_SUFCMA reduction: TODO
+Reduction R_Signature(KEM K, Signature S, AKEM KS) compose Signature_SUFCMA(S) against AKEM_SUFCMA(KS).Adversary {
+
+}
+
 // Correctness reduction: mirrors the AKEM_SUFCMA Ideal game (Decaps tracks
 // the honest-ciphertext set C and rejects c not in C when pk == pkS), but
 // delegates the sender's Sign (in Encaps) and Verify (in Decaps, when
@@ -96,7 +101,7 @@ games:
     // Real game
     AKEM_SUFCMA(KS).Real against AKEM_SUFCMA(KS).Adversary;
 
-    // ToDo: Add your proof steps here.
+    // TODO: Add your proof steps here.
 
     SignatureCorrectness(S).Ideal compose R_Correct(K, S, KS) against AKEM_SUFCMA(KS).Adversary;
 
